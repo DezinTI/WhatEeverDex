@@ -1,0 +1,9 @@
+.git
+**/bin
+**/obj
+**/.vs
+**/.vscode
+**/*.user
+**/*.suo
+**/*.db-wal
+**/*.db-shm
