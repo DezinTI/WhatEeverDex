@@ -1,0 +1,8 @@
+Api Crud/bin/
+Api Crud/obj/
+Api Crud/dzdex.db
+Api Crud/dzdex.db-shm
+Api Crud/dzdex.db-wal
+Api Crud/*.user
+Api Crud/*.suo
+*.log

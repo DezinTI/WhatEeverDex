@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DzDex | Administração</title>
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+    <main class="page-shell admin-shell">
+        <header class="hero-card admin-hero">
+            <div>
+                <p class="eyebrow">Painel Admin</p>
+                <h1>Usuários e privilégios</h1>
+                <p>Promova usuários para admin ou remova contas do sistema.</p>
+            </div>
+            <div class="header-actions">
+                <a class="secondary-link" href="/index.html">Voltar</a>
+                <button id="logoutBtn" type="button" class="ghost-btn">Sair</button>
+            </div>
+        </header>
+
+        <section class="content-card">
+            <div class="section-heading">
+                <h2>Usuários</h2>
+                <p id="adminInfo"></p>
+            </div>
+            <div id="usersList" class="users-list"></div>
+        </section>
+
+        <section class="content-card">
+            <div class="section-heading">
+                <h2>Requests</h2>
+                <p id="requestsInfo">Solicitações pendentes de edição enviadas por usuários.</p>
+            </div>
+            <div id="requestsList" class="requests-list"></div>
+        </section>
+    </main>
+
+    <script src="auth.js"></script>
+    <script src="admin.js"></script>
+</body>
+
+</html>

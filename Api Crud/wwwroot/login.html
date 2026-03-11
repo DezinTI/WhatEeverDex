@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DzDex | Login</title>
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+
+<body>
+    <main class="login-page">
+        <section class="login-card">
+            <div class="login-copy">
+                <p class="eyebrow">WhateverDex</p>
+                <h1>Entrar no DzDex</h1>
+                <p>Use uma conta existente ou crie um usuário comum para acessar os registros.</p>
+            </div>
+
+            <div class="login-panel">
+                <div class="tabs">
+                    <button id="loginTab" class="tab active" type="button">Login</button>
+                    <button id="registerTab" class="tab" type="button">Cadastro</button>
+                </div>
+
+                <form id="loginForm" class="auth-form">
+                    <label>
+                        <span>Email</span>
+                        <input id="loginEmail" type="email" required>
+                    </label>
+                    <label>
+                        <span>Senha</span>
+                        <input id="loginSenha" type="password" required>
+                    </label>
+                    <button type="submit">Entrar</button>
+                    <p id="loginMensagem" class="form-message"></p>
+                </form>
+
+                <form id="registerForm" class="auth-form hidden">
+                    <label>
+                        <span>Nome</span>
+                        <input id="registerNome" type="text" required>
+                    </label>
+                    <label>
+                        <span>Email</span>
+                        <input id="registerEmail" type="email" required>
+                    </label>
+                    <label>
+                        <span>Senha</span>
+                        <input id="registerSenha" type="password" minlength="4" required>
+                    </label>
+                    <button type="submit">Criar conta</button>
+                    <p id="registerMensagem" class="form-message"></p>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <script src="auth.js"></script>
+    <script src="login.js"></script>
+</body>
+
+</html>

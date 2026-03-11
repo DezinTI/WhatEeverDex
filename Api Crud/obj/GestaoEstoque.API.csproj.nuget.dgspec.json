@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\andre\\Desktop\\WhatEeverDex\\Api Crud\\GestaoEstoque.API.csproj": {}
+    "c:\\Users\\andre\\Desktop\\WhatEeverDex\\Api Crud\\GestaoEstoque.API.csproj": {}
   },
   "projects": {
-    "C:\\Users\\andre\\Desktop\\WhatEeverDex\\Api Crud\\GestaoEstoque.API.csproj": {
+    "c:\\Users\\andre\\Desktop\\WhatEeverDex\\Api Crud\\GestaoEstoque.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\andre\\Desktop\\WhatEeverDex\\Api Crud\\GestaoEstoque.API.csproj",
+        "projectUniqueName": "c:\\Users\\andre\\Desktop\\WhatEeverDex\\Api Crud\\GestaoEstoque.API.csproj",
         "projectName": "GestaoEstoque.API",
-        "projectPath": "C:\\Users\\andre\\Desktop\\WhatEeverDex\\Api Crud\\GestaoEstoque.API.csproj",
+        "projectPath": "c:\\Users\\andre\\Desktop\\WhatEeverDex\\Api Crud\\GestaoEstoque.API.csproj",
         "packagesPath": "C:\\Users\\andre\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\andre\\Desktop\\WhatEeverDex\\Api Crud\\obj\\",
+        "outputPath": "c:\\Users\\andre\\Desktop\\WhatEeverDex\\Api Crud\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\andre\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -44,9 +44,17 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "dependencies": {
+            "BCrypt.Net-Next": {
+              "target": "Package",
+              "version": "[4.0.3, )"
+            },
             "ClosedXML": {
               "target": "Package",
               "version": "[0.105.0, )"
+            },
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[9.0.5, )"
             },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",

@@ -22,6 +22,11 @@ namespace DzDex.API.Models
 
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
         public DateTime AtualizadoEm { get; set; } = DateTime.UtcNow;
+
+        public int? CriadoPorId { get; set; }
+        public Usuario? CriadoPor { get; set; }
+
+        public ICollection<ItemEditRequest> SolicitacoesEdicao { get; set; } = new List<ItemEditRequest>();
     }
 }
 

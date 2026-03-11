@@ -1,19 +1,44 @@
 const cardsContainer = document.getElementById('cardsContainer');
+const categoriasLista = document.getElementById('categoriasLista');
 const filtroInput = document.getElementById('filtroInput');
 const tipoFiltro = document.getElementById('tipoFiltro');
 const atualizarBtn = document.getElementById('atualizarBtn');
 const detalhesModal = document.getElementById('detalhesModal');
 const detalhesConteudo = document.getElementById('detalhesConteudo');
 const fecharModalBtn = document.getElementById('fecharModal');
+const edicaoModal = document.getElementById('edicaoModal');
+const fecharEdicaoModalBtn = document.getElementById('fecharEdicaoModal');
+const edicaoForm = document.getElementById('edicaoForm');
+const editIdInput = document.getElementById('editId');
+const editNomeInput = document.getElementById('editNome');
+const editDescricaoInput = document.getElementById('editDescricao');
+const salvarEdicaoBtn = document.getElementById('salvarEdicaoBtn');
 const tipoInput = document.getElementById('tipo');
 const novaCategoriaInput = document.getElementById('novaCategoria');
 const criarCategoriaBtn = document.getElementById('criarCategoriaBtn');
-
 const novoMonstroForm = document.getElementById('novoMonstroForm');
-let modoEstatico = false;
+const userBadge = document.getElementById('userBadge');
+const adminLink = document.getElementById('adminLink');
+const logoutBtn = document.getElementById('logoutBtn');
+
+const IMAGEM_PADRAO = 'https://via.placeholder.com/480x300?text=DzDex';
+
 let registrosCache = [];
 let categoriasCache = [];
-const IMAGEM_PADRAO = 'https://via.placeholder.com/480x300?text=DzDex';
+
+function slugCategoria(valor) {
+    if (!valor) return '';
+
+    return valor
+        .toLowerCase()
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-_]/g, '')
+        .replace(/[\s_]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+}
 
 function valorTipo(tipo) {
     const categoria = categoriasCache.find(item => item.valor === tipo);
@@ -39,41 +64,27 @@ function pegarImagem(url) {
         return IMAGEM_PADRAO;
     }
 
-    const imagem = url.trim().replaceAll('\\', '/');
-
-    if (modoEstatico && imagem.startsWith('/uploads/')) {
-        return IMAGEM_PADRAO;
-    }
-
-    return encodeURI(imagem);
+    return encodeURI(url.trim().replaceAll('\\', '/'));
 }
 
-function slugCategoria(valor) {
-    if (!valor) return '';
-
-    return valor
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9\s-_]/g, '')
-        .replace(/[\s_]+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
+function mostrarMensagemRegistros(mensagem) {
+    cardsContainer.innerHTML = `<p class="empty-state">${mensagem}</p>`;
 }
 
-function categoriasLocaisBase() {
-    const valores = new Set([
-        'luta-anime',
-        'alien-ben10',
-        ...(window.REGISTROS_STATIC || []).map(item => slugCategoria(item.tipo))
-    ]);
+function mostrarMensagemCategorias(mensagem) {
+    categoriasLista.innerHTML = `<p class="empty-state">${mensagem}</p>`;
+}
 
-    return [...valores]
-        .filter(Boolean)
-        .sort()
-        .map(valor => ({
-            valor,
-            nome: valorTipo(valor)
-        }));
+function usuarioPodeExcluirCategorias() {
+    return window.currentUser?.role === 'Admin';
+}
+
+function usuarioPodeExcluirRegistro() {
+    return window.currentUser?.role === 'Admin';
+}
+
+function usuarioEditaDireto() {
+    return window.currentUser?.role === 'Admin';
 }
 
 function preencherSelectCategorias() {
@@ -84,44 +95,120 @@ function preencherSelectCategorias() {
     tipoInput.innerHTML = '<option value="">Selecione o tipo</option>';
 
     categoriasCache.forEach(categoria => {
-        const opFiltro = document.createElement('option');
-        opFiltro.value = categoria.valor;
-        opFiltro.textContent = categoria.nome;
-        tipoFiltro.appendChild(opFiltro);
+        const optionFiltro = document.createElement('option');
+        optionFiltro.value = categoria.valor;
+        optionFiltro.textContent = categoria.nome;
+        tipoFiltro.appendChild(optionFiltro);
 
-        const opTipo = document.createElement('option');
-        opTipo.value = categoria.valor;
-        opTipo.textContent = categoria.nome;
-        tipoInput.appendChild(opTipo);
+        const optionTipo = document.createElement('option');
+        optionTipo.value = categoria.valor;
+        optionTipo.textContent = categoria.nome;
+        tipoInput.appendChild(optionTipo);
     });
 
-    tipoFiltro.value = categoriasCache.some(c => c.valor === filtroAtual) ? filtroAtual : '';
-    tipoInput.value = categoriasCache.some(c => c.valor === tipoAtual) ? tipoAtual : '';
+    tipoFiltro.value = categoriasCache.some(item => item.valor === filtroAtual) ? filtroAtual : '';
+    tipoInput.value = categoriasCache.some(item => item.valor === tipoAtual) ? tipoAtual : '';
 }
 
 async function carregarCategorias() {
-    if (!modoEstatico) {
-        try {
-            const response = await fetch('/api/categorias');
-            if (!response.ok) throw new Error('Falha ao carregar categorias');
-
-            const categorias = await response.json();
-            categoriasCache = categorias
-                .map(item => ({
-                    valor: slugCategoria(item.valor),
-                    nome: item.nome || valorTipo(slugCategoria(item.valor))
-                }))
-                .filter(item => item.valor);
-        } catch {
-            ativarModoEstatico();
-        }
+    const response = await window.authFetch('/api/categorias');
+    if (!response.ok) {
+        throw new Error('Falha ao carregar categorias.');
     }
 
-    if (modoEstatico) {
-        categoriasCache = categoriasLocaisBase();
-    }
+    const categorias = await response.json();
+    categoriasCache = categorias
+        .map(item => ({
+            valor: slugCategoria(item.valor),
+            nome: item.nome || valorTipo(slugCategoria(item.valor)),
+            totalItens: item.totalItens || 0
+        }))
+        .filter(item => item.valor)
+        .sort((a, b) => a.nome.localeCompare(b.nome));
 
     preencherSelectCategorias();
+    renderizarCategorias();
+}
+
+function renderizarCategorias() {
+    categoriasLista.innerHTML = '';
+
+    if (!categoriasCache.length) {
+        categoriasLista.innerHTML = '<p class="empty-state">Nenhuma categoria criada ainda.</p>';
+        return;
+    }
+
+    categoriasCache.forEach(categoria => {
+        const item = document.createElement('article');
+        item.className = 'category-item';
+        const podeExcluirCategoria = usuarioPodeExcluirCategorias();
+        item.innerHTML = `
+            <div>
+                <strong>${categoria.nome}</strong>
+                <span>${categoria.valor}</span>
+            </div>
+            <div class="category-meta">
+                <small>${categoria.totalItens} registro(s)</small>
+                <button type="button" data-id="${categoria.valor}" data-name="${categoria.nome}" class="secondary-btn edit-category-btn">Editar</button>
+                ${podeExcluirCategoria ? `<button type="button" data-id="${categoria.valor}" data-total="${categoria.totalItens}" class="danger-btn delete-category-btn">Excluir</button>` : ''}
+            </div>
+        `;
+
+        categoriasLista.appendChild(item);
+    });
+
+    document.querySelectorAll('.edit-category-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const categoriaId = button.dataset.id;
+            const nomeAtual = button.dataset.name;
+            const novoNome = prompt('Novo nome da categoria:', nomeAtual);
+
+            if (!categoriaId || !novoNome || !novoNome.trim()) return;
+
+            const response = await window.authFetch(`/api/categorias/${categoriaId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome: novoNome.trim() })
+            });
+
+            const data = await tentarLerJson(response);
+            if (!response.ok) {
+                alert(data?.message || data?.mensagem || 'Nao foi possivel editar a categoria.');
+                return;
+            }
+
+            await carregarCategorias();
+            await carregarMonstros(filtroInput.value, tipoFiltro.value);
+        });
+    });
+
+    document.querySelectorAll('.delete-category-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const categoriaId = button.dataset.id;
+            const totalItens = Number(button.dataset.total || '0');
+
+            if (!categoriaId) return;
+
+            if (totalItens > 0) {
+                alert('Nao e possivel excluir categoria com registros vinculados.');
+                return;
+            }
+
+            if (!confirm('Deseja excluir esta categoria?')) return;
+
+            const response = await window.authFetch(`/api/categorias/${categoriaId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await tentarLerJson(response);
+            if (!response.ok) {
+                alert(data?.message || data?.mensagem || 'Nao foi possivel excluir a categoria.');
+                return;
+            }
+
+            await carregarCategorias();
+        });
+    });
 }
 
 function converterYoutubeParaEmbed(url) {
@@ -132,13 +219,12 @@ function converterYoutubeParaEmbed(url) {
         const host = parsed.hostname.toLowerCase();
 
         if (host.includes('youtu.be')) {
-            const id = parsed.pathname.replace('/', '');
-            return `https://www.youtube.com/embed/${id}`;
+            return `https://www.youtube.com/embed/${parsed.pathname.replace('/', '')}`;
         }
 
         if (host.includes('youtube.com')) {
-            const id = parsed.searchParams.get('v');
-            if (id) return `https://www.youtube.com/embed/${id}`;
+            const videoId = parsed.searchParams.get('v');
+            if (videoId) return `https://www.youtube.com/embed/${videoId}`;
         }
 
         return url;
@@ -155,105 +241,102 @@ function normalizarRegistro(item) {
         imagemUrl: item.imagemUrl,
         videoYoutubeUrl: item.videoYoutubeUrl,
         videoYoutubeEmbedUrl: item.videoYoutubeEmbedUrl || converterYoutubeParaEmbed(item.videoYoutubeUrl),
-        descricao: item.descricao || ''
+        descricao: item.descricao || '',
+        criadoPorNome: item.criadoPorNome || 'Sem autor identificado',
+        criadoPorEmail: item.criadoPorEmail || '',
+        criadoPorId: item.criadoPorId ?? null,
+        atualizadoEm: item.atualizadoEm,
+        criadoEm: item.criadoEm
     };
 }
 
-function ativarModoEstatico() {
-    if (modoEstatico) return;
-
-    modoEstatico = true;
-
-    const painel = document.querySelector('.panel');
-    if (painel) {
-        painel.innerHTML = `<h2>Novo Registro</h2><p>Modo GitHub Pages: aqui so funciona visualizacao.</p>`;
-    }
-}
-
-function filtrarRegistrosLocais(filtro, tipo) {
-    const todos = (window.REGISTROS_STATIC || []).map(normalizarRegistro);
-
-    return todos.filter(item => {
-        const passouTipo = !tipo || item.tipo === tipo;
-        const texto = `${item.nome} ${item.tipo} ${item.descricao}`.toLowerCase();
-        const passouBusca = !filtro || texto.includes(filtro.toLowerCase());
-        return passouTipo && passouBusca;
-    });
-}
-
-function renderizarCards(monstros) {
+function renderizarCards(registros) {
     cardsContainer.innerHTML = '';
 
-    if (!monstros.length) {
-        cardsContainer.innerHTML = '<p>Nenhum registro encontrado.</p>';
+    if (!registros.length) {
+        cardsContainer.innerHTML = '<p class="empty-state">Nenhum registro encontrado.</p>';
         return;
     }
 
-    monstros.forEach(monstro => {
-        const descricao = pegarDescricao(monstro.descricao);
-        const imagem = pegarImagem(monstro.imagemUrl);
+    registros.forEach(registro => {
+        const descricao = pegarDescricao(registro.descricao);
+        const imagem = pegarImagem(registro.imagemUrl);
+        const podeExcluir = usuarioPodeExcluirRegistro();
+        const tituloBotaoEdicao = usuarioEditaDireto() ? 'Editar' : 'Solicitar edicao';
+        const classeAcoes = podeExcluir ? '' : 'dual-action';
 
         const card = document.createElement('article');
         card.className = 'card';
         card.innerHTML = `
-            <img src="${imagem}" alt="${monstro.nome}" onerror="this.onerror=null;this.src='${IMAGEM_PADRAO}'">
+            <div class="card-media">
+                <img src="${imagem}" alt="${registro.nome}" loading="lazy" onerror="this.onerror=null;this.src='${IMAGEM_PADRAO}'">
+            </div>
             <div class="card-body">
-                <h3>${monstro.nome}</h3>
-                <p><strong>Tipo:</strong> ${valorTipo(monstro.tipo)}</p>
+                <div class="card-topline">
+                    <h3>${registro.nome}</h3>
+                    <span class="chip">${valorTipo(registro.tipo)}</span>
+                </div>
                 <p class="descricao-card">${descricao}</p>
-                <iframe class="youtube-preview" src="${monstro.videoYoutubeEmbedUrl}" title="Previa de ${monstro.nome}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                <div class="card-actions">
-                    <button data-id="${monstro.id}" class="detalhes-btn">Detalhes</button>
-                    ${modoEstatico ? '' : `<button data-id="${monstro.id}" class="renomear-btn">Renomear</button><button data-id="${monstro.id}" class="excluir-btn">Excluir</button>`}
+                <p class="card-author">Criado por: <strong>${registro.criadoPorNome}</strong></p>
+                <iframe class="youtube-preview" src="${registro.videoYoutubeEmbedUrl}" title="Previa de ${registro.nome}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                <div class="card-actions ${classeAcoes}">
+                    <button data-id="${registro.id}" class="detalhes-btn">Detalhes</button>
+                    <button data-id="${registro.id}" class="editar-btn">${tituloBotaoEdicao}</button>
+                    ${podeExcluir ? `<button data-id="${registro.id}" class="excluir-btn">Excluir</button>` : ''}
                 </div>
             </div>
         `;
+
         cardsContainer.appendChild(card);
     });
 
-    document.querySelectorAll('.detalhes-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            await abrirDetalhes(btn.getAttribute('data-id'));
+    document.querySelectorAll('.detalhes-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            await abrirDetalhes(button.dataset.id);
         });
     });
 
-    if (modoEstatico) return;
+    document.querySelectorAll('.editar-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const id = Number(button.dataset.id);
+            const registro = registrosCache.find(item => item.id === id);
+            if (!registro) return;
 
-    document.querySelectorAll('.renomear-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const id = Number(btn.getAttribute('data-id'));
-            const novoNome = prompt('Novo nome:');
-            if (!novoNome || !novoNome.trim()) return;
-
-            const responseRename = await fetch(`/api/registros/${id}/renomear`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome: novoNome.trim() })
-            });
-
-            if (!responseRename.ok) {
-                alert('Nao foi possivel renomear.');
-                return;
-            }
-
-            await carregarMonstros(filtroInput.value, tipoFiltro.value);
+            abrirModalEdicao(registro);
         });
     });
 
-    document.querySelectorAll('.excluir-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const id = Number(btn.getAttribute('data-id'));
+    document.querySelectorAll('.excluir-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const id = Number(button.dataset.id);
             if (!confirm('Deseja excluir este registro?')) return;
 
-            const responseDelete = await fetch(`/api/registros/${id}`, { method: 'DELETE' });
-            if (!responseDelete.ok) {
-                alert('Nao foi possivel excluir.');
+            const response = await window.authFetch(`/api/registros/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                alert('Nao foi possivel excluir o registro.');
                 return;
             }
 
             await carregarMonstros(filtroInput.value, tipoFiltro.value);
         });
     });
+}
+
+function abrirModalEdicao(registro) {
+    editIdInput.value = String(registro.id);
+    editNomeInput.value = registro.nome;
+    editDescricaoInput.value = registro.descricao || '';
+    salvarEdicaoBtn.textContent = usuarioEditaDireto() ? 'Salvar alteracao' : 'Enviar para aprovacao';
+    edicaoModal.style.display = 'flex';
+}
+
+function fecharModalEdicao() {
+    edicaoForm.reset();
+    editIdInput.value = '';
+    edicaoModal.style.display = 'none';
 }
 
 async function carregarMonstros(filtro = '', tipo = '') {
@@ -261,62 +344,47 @@ async function carregarMonstros(filtro = '', tipo = '') {
     if (filtro) params.set('busca', filtro);
     if (tipo) params.set('tipo', tipo);
 
-    if (!modoEstatico) {
-        try {
-            const url = params.toString() ? `/api/registros?${params.toString()}` : '/api/registros';
-            const response = await fetch(url);
-
-            if (!response.ok) throw new Error('Falha API');
-
-            const monstros = (await response.json()).map(normalizarRegistro);
-            registrosCache = monstros;
-            renderizarCards(monstros);
-            return;
-        } catch {
-            ativarModoEstatico();
-        }
+    const url = params.toString() ? `/api/registros?${params.toString()}` : '/api/registros';
+    const response = await window.authFetch(url);
+    if (!response.ok) {
+        throw new Error('Falha ao carregar registros.');
     }
 
-    const locais = filtrarRegistrosLocais(filtro, tipo);
-    registrosCache = locais;
-    renderizarCards(locais);
+    registrosCache = (await response.json()).map(normalizarRegistro);
+    renderizarCards(registrosCache);
 }
 
 async function abrirDetalhes(id) {
-    let monstro = null;
+    const response = await window.authFetch(`/api/registros/${id}`);
+    if (!response.ok) return;
 
-    if (modoEstatico) {
-        monstro = registrosCache.find(item => Number(item.id) === Number(id));
-    } else {
-        const response = await fetch(`/api/registros/${id}`);
-        if (!response.ok) return;
-        monstro = normalizarRegistro(await response.json());
-    }
-
-    if (!monstro) return;
-
-    const descricao = pegarDescricao(monstro.descricao);
-    const imagem = pegarImagem(monstro.imagemUrl);
+    const registro = normalizarRegistro(await response.json());
+    const descricao = pegarDescricao(registro.descricao);
+    const imagem = pegarImagem(registro.imagemUrl);
 
     detalhesConteudo.innerHTML = `
-        <img src="${imagem}" alt="${monstro.nome}" class="detalhe-imagem" onerror="this.onerror=null;this.src='${IMAGEM_PADRAO}'">
-        <h3>${monstro.nome}</h3>
-        <p><strong>Tipo:</strong> ${valorTipo(monstro.tipo)}</p>
-        <iframe class="youtube-preview" src="${monstro.videoYoutubeEmbedUrl}" title="Previa de ${monstro.nome}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        <img src="${imagem}" alt="${registro.nome}" class="detalhe-imagem" onerror="this.onerror=null;this.src='${IMAGEM_PADRAO}'">
+        <h3>${registro.nome}</h3>
+        <p><strong>Tipo:</strong> ${valorTipo(registro.tipo)}</p>
+        <p><strong>Criado por:</strong> ${registro.criadoPorNome}</p>
+        <iframe class="youtube-preview" src="${registro.videoYoutubeEmbedUrl}" title="Previa de ${registro.nome}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
         <p><strong>Descricao:</strong> ${descricao}</p>
-        <p><strong>YouTube:</strong> <a href="${monstro.videoYoutubeUrl}" target="_blank">Abrir video</a></p>
+        <p><strong>YouTube:</strong> <a href="${registro.videoYoutubeUrl}" target="_blank" rel="noreferrer">Abrir video</a></p>
     `;
 
     detalhesModal.style.display = 'flex';
 }
 
-novoMonstroForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-
-    if (modoEstatico) {
-        alert('No GitHub Pages essa parte de cadastro nao funciona, so visualizacao.');
-        return;
+async function tentarLerJson(response) {
+    try {
+        return await response.json();
+    } catch {
+        return null;
     }
+}
+
+novoMonstroForm.addEventListener('submit', async event => {
+    event.preventDefault();
 
     const formData = new FormData();
     formData.append('nome', document.getElementById('nome').value);
@@ -325,25 +393,28 @@ novoMonstroForm.addEventListener('submit', async (event) => {
     formData.append('descricao', document.getElementById('descricao').value);
 
     const imagemUrl = document.getElementById('imagemUrl').value;
-    if (imagemUrl) formData.append('imagemUrl', imagemUrl);
+    if (imagemUrl) {
+        formData.append('imagemUrl', imagemUrl);
+    }
 
     const imagemArquivoInput = document.getElementById('imagemArquivo');
     if (imagemArquivoInput.files.length > 0) {
         formData.append('imagemArquivo', imagemArquivoInput.files[0]);
     }
 
-    const response = await fetch('/api/registros', {
+    const response = await window.authFetch('/api/registros', {
         method: 'POST',
         body: formData
     });
 
     if (!response.ok) {
-        alert('Nao foi possivel salvar o registro.');
+        const data = await tentarLerJson(response);
+        alert(data?.message || 'Nao foi possivel salvar o registro.');
         return;
     }
 
     novoMonstroForm.reset();
-    preencherSelectCategorias();
+    await carregarCategorias();
     await carregarMonstros(filtroInput.value, tipoFiltro.value);
 });
 
@@ -354,19 +425,15 @@ criarCategoriaBtn.addEventListener('click', async () => {
         return;
     }
 
-    if (modoEstatico) {
-        alert('No modo estatico nao e possivel cadastrar categorias.');
-        return;
-    }
-
-    const response = await fetch('/api/categorias', {
+    const response = await window.authFetch('/api/categorias', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome: valor })
     });
 
+    const data = await tentarLerJson(response);
     if (!response.ok && response.status !== 409) {
-        alert('Nao foi possivel cadastrar a categoria.');
+        alert(data?.message || 'Nao foi possivel cadastrar a categoria.');
         return;
     }
 
@@ -391,13 +458,92 @@ fecharModalBtn.addEventListener('click', () => {
     detalhesModal.style.display = 'none';
 });
 
-detalhesModal.addEventListener('click', (event) => {
+detalhesModal.addEventListener('click', event => {
     if (event.target === detalhesModal) {
         detalhesModal.style.display = 'none';
     }
 });
 
+logoutBtn.addEventListener('click', () => {
+    window.logout();
+});
+
+fecharEdicaoModalBtn.addEventListener('click', () => {
+    fecharModalEdicao();
+});
+
+edicaoModal.addEventListener('click', event => {
+    if (event.target === edicaoModal) {
+        fecharModalEdicao();
+    }
+});
+
+edicaoForm.addEventListener('submit', async event => {
+    event.preventDefault();
+
+    const id = Number(editIdInput.value);
+    const nome = editNomeInput.value.trim();
+    const descricao = editDescricaoInput.value.trim();
+
+    if (!id || !nome) {
+        alert('Informe um nome valido.');
+        return;
+    }
+
+    let response;
+
+    if (usuarioEditaDireto()) {
+        const formData = new FormData();
+        formData.append('nome', nome);
+        formData.append('descricao', descricao);
+
+        response = await window.authFetch(`/api/registros/${id}`, {
+            method: 'PUT',
+            body: formData
+        });
+    } else {
+        response = await window.authFetch(`/api/registros/${id}/solicitar-edicao`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome, descricao })
+        });
+    }
+
+    const data = await tentarLerJson(response);
+    if (!response.ok) {
+        alert(data?.message || data?.mensagem || 'Nao foi possivel enviar a alteracao.');
+        return;
+    }
+
+    fecharModalEdicao();
+    alert(data?.message || (usuarioEditaDireto()
+        ? 'Registro atualizado com sucesso.'
+        : 'Solicitacao enviada para aprovacao.'));
+    await carregarMonstros(filtroInput.value, tipoFiltro.value);
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
-    await carregarCategorias();
-    await carregarMonstros();
+    await window.requireAuth();
+
+    if (window.currentUser) {
+        userBadge.textContent = `${window.currentUser.nome} (${window.currentUser.role})`;
+        if (window.currentUser.role === 'Admin') {
+            adminLink.classList.remove('hidden');
+        }
+    }
+
+    const [categoriasResult, registrosResult] = await Promise.allSettled([
+        carregarCategorias(),
+        carregarMonstros()
+    ]);
+
+    if (categoriasResult.status === 'rejected') {
+        console.error(categoriasResult.reason);
+        mostrarMensagemCategorias('Nao foi possivel carregar as categorias agora.');
+    }
+
+    if (registrosResult.status === 'rejected') {
+        console.error(registrosResult.reason);
+        mostrarMensagemRegistros('Nao foi possivel carregar os registros agora.');
+    }
 });

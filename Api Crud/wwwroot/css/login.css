@@ -1,0 +1,97 @@
+.login-page {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+
+.login-card {
+    width: min(980px, 100%);
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.login-copy {
+    padding: 2rem;
+    background:
+        linear-gradient(180deg, rgba(191, 90, 54, 0.18), rgba(255, 255, 255, 0)),
+        linear-gradient(135deg, #f7e0d2, #f4ead8);
+}
+
+.login-copy h1 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    margin-bottom: 1rem;
+}
+
+.login-copy p {
+    color: var(--muted);
+}
+
+.seed-users {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.56);
+}
+
+.login-panel {
+    padding: 2rem;
+    background: rgba(255, 252, 247, 0.92);
+}
+
+.tabs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 1rem;
+}
+
+.tab {
+    background: transparent;
+    border: 1px solid var(--line);
+}
+
+.tab.active {
+    background: var(--accent);
+    color: white;
+}
+
+.auth-form {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.auth-form label {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.auth-form button {
+    background: var(--accent);
+    color: white;
+}
+
+.form-message {
+    min-height: 1.4rem;
+    color: var(--muted);
+}
+
+.form-message.error {
+    color: var(--danger);
+}
+
+.form-message.success {
+    color: #2f7d32;
+}
+
+@media (max-width: 780px) {
+    .login-card {
+        grid-template-columns: 1fr;
+    }
+}

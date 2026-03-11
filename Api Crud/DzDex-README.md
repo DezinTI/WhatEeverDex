@@ -1,208 +1,184 @@
-# DzDex - WhateverDex
+# DzDex API + Frontend
 
-Sistema de gerenciamento de cards com imagens, vídeos do YouTube e categorias personalizáveis.
+Aplicacao ASP.NET Core com frontend estatico para cadastrar, listar, editar e excluir registros, com autenticacao JWT, usuarios com papel de admin, fila de aprovacao para edicoes e categorias dinamicas.
 
-## 📋 Descrição
+## O que o sistema faz
 
-O DzDex é uma aplicação web para criar e gerenciar uma coleção de cards com:
-- Imagens e vídeos do YouTube
-- Categorias personalizáveis
-- Sistema de filtro por nome e tipo
-- Interface moderna e responsiva
-- Armazenamento local (LocalStorage)
+- Cadastro e login de usuarios.
+- CRUD de registros em `/api/registros`.
+- CRUD de categorias em `/api/categorias`.
+- Painel admin para promover usuarios para admin ou excluir usuarios.
+- Vinculo de cada registro ao usuario que criou.
+- Requests de alteracao de nome/descricao para aprovacao do admin.
 
-## 🚀 Funcionalidades
+## Estrutura principal
 
-### ✅ Principais Recursos
-- **CRUD Completo**: Criar, visualizar, editar e excluir registros
-- **Categorias Dinâmicas**: Criar e gerenciar tipos personalizados
-- **Filtro Avançado**: Buscar por nome, descrição ou tipo
-- **Modal Interativo**: Visualização detalhada com vídeo embutido
-- **Armazenamento Local**: Dados salvos no navegador
-- **Interface Responsiva**: Funciona em desktop e mobile
+### Backend
 
-### 📱 Interface
-- Design moderno com tema escuro
-- Cards com hover effects
-- Modal para visualização detalhada
-- Formulário intuitivo para cadastro
-- Sistema de notificações
+- `Program.cs`
+  - Configura controllers, SQLite, JWT bearer, Swagger e arquivos estaticos.
+  - Redireciona `/` para `login.html`.
 
-## 🛠️ Tecnologias
+- `Data/EstoqueContext.cs`
+  - Contexto do Entity Framework.
+  - Define tabelas de `Itens` e `Usuarios`.
 
-- **Frontend**: HTML5, CSS3, JavaScript ES6+
-- **Armazenamento**: LocalStorage API
-- **Estilo**: CSS Grid e Flexbox
-- **Responsividade**: Mobile-first design
+- `Models/Item.cs`
+  - Entidade principal dos registros.
+  - Guarda nome, tipo, imagem, video, descricao e usuario criador.
 
-## 📦 Instalação
+- `Models/Usuario.cs`
+  - Entidade de usuario e DTOs de login/cadastro/alteracao de role.
 
-### Pré-requisitos
-- Navegador web moderno (Chrome, Firefox, Safari, Edge)
-- Servidor web local (opcional, para desenvolvimento)
+- `Controllers/AuthController.cs`
+  - Login, cadastro e endpoint `/api/auth/me`.
+  - Gera o token JWT.
 
-### Passos para Instalação
+- `Controllers/ItensController.cs`
+  - Lista, cria e exclui registros.
+  - Admin aplica edicoes direto; usuario comum envia solicitacao de alteracao.
 
-1. **Clone o repositório**:
+- `Controllers/RequestsController.cs`
+  - Somente admin.
+  - Lista requests pendentes e aprova/recusa alteracoes enviadas por usuarios.
+
+- `Controllers/CategoriasController.cs`
+  - Lista, cria, edita e exclui categorias.
+  - As categorias persistem em `App_Data/categorias.json`.
+
+- `Controllers/UsersController.cs`
+  - Somente admin.
+  - Lista usuarios, altera role e exclui usuarios.
+
+- `Seed/SeedDatabase.cs`
+  - Garante estrutura minima do banco.
+  - Cria/atualiza os admins padrao na inicializacao.
+
+- `App_Data/categorias.json`
+  - Arquivo com categorias cadastradas manualmente.
+
+### Frontend
+
+- `wwwroot/login.html`
+  - Tela de login e cadastro.
+
+- `wwwroot/index.html`
+  - Tela principal autenticada.
+  - Mostra registros, formulario de novo registro, gerenciamento de categorias e envio de edicao para aprovacao.
+
+- `wwwroot/admin.html`
+  - Painel de administracao de usuarios e requests pendentes.
+
+- `wwwroot/auth.js`
+  - Helpers de token, sessao, logout e fetch autenticado.
+
+- `wwwroot/login.js`
+  - Fluxo de login/cadastro.
+
+- `wwwroot/script.js`
+  - Fluxo da tela principal: registros, filtros, modal e categorias.
+
+- `wwwroot/admin.js`
+  - Fluxo do painel admin.
+
+- `wwwroot/css/base.css`
+  - Estilos compartilhados.
+
+- `wwwroot/css/login.css`
+  - Estilos da pagina de login.
+
+- `wwwroot/css/index.css`
+  - Estilos da pagina principal.
+
+- `wwwroot/css/admin.css`
+  - Estilos do painel admin.
+
+## Fluxo de permissao
+
+- Usuario comum:
+  - pode criar registros;
+  - pode solicitar edicao de nome e descricao de qualquer registro;
+  - pode criar/editar categorias;
+  - nao pode excluir registros;
+  - nao pode excluir categorias;
+  - nao acessa `/admin.html` nem `/api/users`.
+
+- Admin:
+  - pode gerenciar qualquer registro;
+  - pode aprovar ou recusar requests de alteracao;
+  - pode promover usuarios para admin;
+  - pode excluir usuarios.
+
+## Como rodar localmente
+
+Na pasta `Api Crud`:
+
 ```bash
-git clone https://github.com/DezinTI/Rocket-Program-Alpar.git
-cd Rocket-Program-Alpar
+dotnet restore
+dotnet build
+dotnet run
 ```
 
-2. **Acesse os arquivos do DzDex**:
-```bash
-cd WhatEeverDex/Api\ Crud/wwwroot
+Depois abra:
+
+- `http://localhost:5000/login.html`
+- ou a porta mostrada no terminal.
+
+## Swagger
+
+Em desenvolvimento, o Swagger fica em:
+
+```text
+/swagger
 ```
 
-3. **Abra a aplicação**:
-- Opção 1: Abra `index.html` diretamente no navegador
-- Opção 2: Use um servidor local:
-```bash
-# Python 3
-python -m http.server 8000
+Para testar endpoints protegidos:
 
-# Node.js (se tiver instalado)
-npx serve .
+1. faça login em `/api/auth/login`;
+2. copie o token JWT;
+3. clique em `Authorize` no Swagger;
+4. informe `Bearer SEU_TOKEN`.
 
-# VS Code com Live Server
-# Clique com botão direito em index.html > "Open with Live Server"
+## Deploy
+
+O projeto .NET fica dentro de `Api Crud/`, entao o caminho mais confiavel para deploy e o `Dockerfile` na raiz do repositorio.
+
+Ele:
+
+- faz restore/publicacao do projeto dentro de `Api Crud`;
+- sobe a aplicacao ASP.NET na porta definida por `PORT`.
+
+### Variaveis de ambiente no Railway
+
+Para subir em producao sem depender da configuracao local, defina estas variaveis no Railway:
+
+- `Jwt__Key`
+  - chave JWT forte usada para assinar os tokens.
+- `Jwt__Issuer`
+  - exemplo: `DzDexAPI`.
+- `Jwt__Audience`
+  - exemplo: `DzDexClient`.
+- `ConnectionStrings__DefaultConnection`
+  - se usar SQLite com volume, exemplo: `Data Source=/data/dzdex.db`.
+
+Sem `Jwt__Key` em producao a aplicacao nao inicializa.
+
+### Persistencia de banco
+
+O arquivo `dzdex.db` local agora fica fora do commit e fora do build Docker.
+
+Se for usar Railway com SQLite, anexe um volume e aponte `ConnectionStrings__DefaultConnection` para esse caminho persistente. Exemplo:
+
+```text
+Data Source=/data/dzdex.db
 ```
 
-## 🎯 Como Usar
+Se nao configurar volume, o banco do container pode ser perdido a cada novo deploy.
 
-### 1. **Visualizar Registros**
-- Abra a aplicação
-- Use a barra de busca para filtrar
-- Selecione categorias no dropdown
-- Clique nos cards para ver detalhes
+## Observacoes
 
-### 2. **Adicionar Novo Registro**
-1. Preencha o formulário "Novo Registro"
-2. Campos obrigatórios: Nome e Tipo
-3. Campos opcionais: Descrição, URL da imagem, URL do vídeo
-4. Clique em "Adicionar"
-
-### 3. **Criar Categorias**
-1. No campo "Nova categoria", digite o nome (ex: "memes-anime")
-2. Clique em "Cadastrar categoria"
-3. A nova categoria aparecerá nos selects
-
-### 4. **Editar Registros**
-1. Clique em qualquer card para abrir o modal
-2. Clique no botão "Editar"
-3. Modifique as informações desejadas
-4. Salve as alterações
-
-### 5. **Excluir Registros**
-1. Abra o modal do registro
-2. Clique em "Excluir"
-3. Confirme a exclusão
-
-## 📁 Estrutura de Arquivos
-
-```
-WhatEeverDex/Api Crud/wwwroot/
-├── index.html              # Página principal
-├── styles.css              # Estilos CSS
-├── script.js               # Lógica JavaScript
-├── registros-static.js     # Dados de exemplo
-├── uploads/                # Pasta de imagens
-└── dashboard.html          # Dashboard (em desenvolvimento)
-```
-
-## 💡 Dicas de Uso
-
-### **URLs de Vídeos**
-O sistema aceita estes formatos de URL do YouTube:
-- `https://www.youtube.com/watch?v=VIDEO_ID`
-- `https://youtu.be/VIDEO_ID`
-- `https://www.youtube.com/embed/VIDEO_ID`
-
-### **Imagens**
-- Use URLs de imagens online ou
-- Faça upload para a pasta `uploads/`
-- Imagens com erro usam placeholder automático
-
-### **Categorias**
-- Use nomes descritivos (ex: "alien-ben10", "luta-anime")
-- Evite espaços e caracteres especiais
-- Use hífen para separar palavras
-
-## 🔧 Configuração
-
-### **Dados Iniciais**
-O sistema carrega dados de exemplo automaticamente na primeira execução:
-- 6 registros pré-cadastrados
-- 2 categorias padrão
-- Imagens placeholder para testes
-
-### **Backup dos Dados**
-Os dados são salvos no LocalStorage do navegador:
-- `dzdex-registros`: Lista de todos os registros
-- `dzdex-categorias`: Lista de categorias personalizadas
-
-### **Limpar Dados**
-Para resetar a aplicação:
-1. Abra o DevTools (F12)
-2. Vá para aba Application/Storage
-3. Localize "Local Storage"
-4. Remova as chaves `dzdex-registros` e `dzdex-categorias`
-5. Recarregue a página
-
-## 🚀 Deploy
-
-### **GitHub Pages**
-1. Faça upload dos arquivos para o repositório
-2. Ative GitHub Pages nas configurações
-3. Selecione a branch `main`
-4. Acesse: `https://username.github.io/repo/WhatEeverDex/Api%20Crud/wwwroot/`
-
-### **Outras Plataformas**
-- **Netlify**: Arraste e solte a pasta `wwwroot`
-- **Vercel**: Importe o repositório GitHub
-- **Firebase Hosting**: Use o Firebase CLI
-
-## 🐛 Troubleshooting
-
-### **Problemas Comuns**
-
-** Vídeos não aparecem**
-- Verifique se a URL do YouTube está correta
-- Confirme se o vídeo não está privado ou restrito
-
-** Imagens não carregam**
-- Verifique se a URL da imagem está acessível
-- Teste abrir a URL da imagem em outra aba
-
-** Dados não são salvos**
-- Verifique se o navegador permite LocalStorage
-- Limpe o cache e cookies do navegador
-
-** Modal não abre**
-- Verifique o console do navegador por erros
-- Confirme se o JavaScript está habilitado
-
-## 🤝 Contribuição
-
-Contribuições são bem-vindas! Para contribuir:
-
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
-3. Faça commit das mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
-4. Push para a branch (`git push origin feature/nova-funcionalidade`)
-5. Abra um Pull Request
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
-## 📞 Contato
-
-- **Autor**: André Augustinho
-- **Email**: dezin.ti01@gmail.com
-- **GitHub**: [@DezinTI](https://github.com/DezinTI)
-- **LinkedIn**: [André Augustinho](https://www.linkedin.com/in/dezin-ti-da-costa/)
-
----
-
-**DzDex v1.0** - Sistema de gerenciamento de cards com JavaScript puro 🚀
+- Imagens enviadas por arquivo vao para `wwwroot/uploads/`.
+- Categorias com registros vinculados nao podem ser excluidas.
+- Categorias so podem ser excluidas por admin.
+- Requests recusados nao alteram o item original.
+- O banco SQLite principal e `dzdex.db`.

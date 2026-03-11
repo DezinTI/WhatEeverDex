@@ -1,12 +1,15 @@
 ﻿using DzDex.API.Data;
 using DzDex.API.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace DzDex.API.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/registros")]
     public class ItensController : ControllerBase
     {
@@ -28,7 +31,7 @@ namespace DzDex.API.Controllers
                 var termo = busca.Trim().ToLower();
                 query = query.Where(m =>
                     m.Nome.ToLower().Contains(termo) ||
-                    m.Descricao.ToLower().Contains(termo) ||
+                    (m.Descricao ?? string.Empty).ToLower().Contains(termo) ||
                     m.Tipo.ToLower().Contains(termo));
             }
 
@@ -39,6 +42,7 @@ namespace DzDex.API.Controllers
             }
 
             var registros = await query
+                .Include(item => item.CriadoPor)
                 .OrderByDescending(m => m.AtualizadoEm)
                 .ToListAsync();
 
@@ -48,7 +52,9 @@ namespace DzDex.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetRegistro(int id)
         {
-            var item = await _context.Itens.FindAsync(id);
+            var item = await _context.Itens
+                .Include(registro => registro.CriadoPor)
+                .FirstOrDefaultAsync(registro => registro.Id == id);
             if (item == null) return NotFound();
             return Ok(MapToResponse(item));
         }
@@ -81,7 +87,8 @@ namespace DzDex.API.Controllers
                 VideoYoutubeUrl = dto.VideoYoutubeUrl.Trim(),
                 Descricao = dto.Descricao?.Trim() ?? string.Empty,
                 CriadoEm = agora,
-                AtualizadoEm = agora
+                AtualizadoEm = agora,
+                CriadoPorId = GetCurrentUserId()
             };
 
             _context.Itens.Add(item);
@@ -93,8 +100,13 @@ namespace DzDex.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateRegistro(int id, [FromForm] ItemUpdateDto dto)
         {
-            var item = await _context.Itens.FindAsync(id);
+            var item = await _context.Itens
+                .Include(registro => registro.CriadoPor)
+                .FirstOrDefaultAsync(registro => registro.Id == id);
             if (item == null) return NotFound();
+
+            if (!User.IsInRole("Admin"))
+                return Forbid();
 
             if (!string.IsNullOrWhiteSpace(dto.Nome))
                 item.Nome = dto.Nome.Trim();
@@ -126,8 +138,13 @@ namespace DzDex.API.Controllers
             if (string.IsNullOrWhiteSpace(dto.Nome))
                 return BadRequest("Informe um nome valido.");
 
-            var item = await _context.Itens.FindAsync(id);
+            var item = await _context.Itens
+                .Include(registro => registro.CriadoPor)
+                .FirstOrDefaultAsync(registro => registro.Id == id);
             if (item == null) return NotFound();
+
+            if (!User.IsInRole("Admin"))
+                return Forbid();
 
             item.Nome = dto.Nome.Trim();
             item.AtualizadoEm = DateTime.UtcNow;
@@ -136,11 +153,68 @@ namespace DzDex.API.Controllers
             return Ok(MapToResponse(item));
         }
 
+        [HttpPost("{id}/solicitar-edicao")]
+        public async Task<IActionResult> SolicitarEdicao(int id, [FromBody] ItemEditRequestCreateDto dto)
+        {
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
+
+            var item = await _context.Itens.FirstOrDefaultAsync(registro => registro.Id == id);
+            if (item == null)
+                return NotFound(new { message = "Registro nao encontrado." });
+
+            if (User.IsInRole("Admin"))
+            {
+                item.Nome = dto.Nome.Trim();
+                item.Descricao = dto.Descricao?.Trim() ?? string.Empty;
+                item.AtualizadoEm = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Alteracao aplicada com sucesso." });
+            }
+
+            var userId = GetCurrentUserId();
+            if (!userId.HasValue)
+                return Forbid();
+
+            var nomeProposto = dto.Nome.Trim();
+            var descricaoProposta = dto.Descricao?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(nomeProposto))
+                return BadRequest(new { message = "Informe um nome valido." });
+
+            var existePendente = await _context.ItemEditRequests.AnyAsync(request =>
+                request.ItemId == item.Id && request.Status == "Pending");
+
+            if (existePendente)
+                return Conflict(new { message = "Ja existe uma solicitacao pendente para este item." });
+
+            var solicitacao = new ItemEditRequest
+            {
+                ItemId = item.Id,
+                SolicitadoPorId = userId.Value,
+                NomeAtual = item.Nome,
+                DescricaoAtual = item.Descricao,
+                NomeProposto = nomeProposto,
+                DescricaoProposta = descricaoProposta,
+                Status = "Pending",
+                CriadoEm = DateTime.UtcNow
+            };
+
+            _context.ItemEditRequests.Add(solicitacao);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Solicitacao enviada para aprovacao do admin." });
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRegistro(int id)
         {
             var item = await _context.Itens.FindAsync(id);
             if (item == null) return NotFound();
+
+            if (!User.IsInRole("Admin"))
+                return Forbid();
 
             _context.Itens.Remove(item);
             await _context.SaveChangesAsync();
@@ -180,8 +254,17 @@ namespace DzDex.API.Controllers
             VideoYoutubeEmbedUrl = ToYoutubeEmbedUrl(item.VideoYoutubeUrl),
             item.Descricao,
             item.CriadoEm,
-            item.AtualizadoEm
+            item.AtualizadoEm,
+            item.CriadoPorId,
+            CriadoPorNome = item.CriadoPor?.Nome,
+            CriadoPorEmail = item.CriadoPor?.Email
         };
+
+        private int? GetCurrentUserId()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return int.TryParse(claim, out var userId) ? userId : null;
+        }
 
         private static string ToYoutubeEmbedUrl(string url)
         {

@@ -1,0 +1,116 @@
+.admin-shell {
+    display: grid;
+    gap: 18px;
+}
+
+.admin-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: start;
+}
+
+.users-list {
+    display: grid;
+    gap: 12px;
+}
+
+.requests-list {
+    display: grid;
+    gap: 12px;
+}
+
+.user-card {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--panel-strong);
+}
+
+.request-card {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: start;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--panel-strong);
+}
+
+.user-card h3 {
+    margin-bottom: 0.3rem;
+}
+
+.user-card p,
+.user-card small,
+.request-card p,
+.request-card small {
+    color: var(--muted);
+}
+
+.request-copy {
+    display: grid;
+    gap: 0.8rem;
+    min-width: 0;
+}
+
+.request-copy h3,
+.request-copy p,
+.request-copy strong {
+    overflow-wrap: anywhere;
+}
+
+.request-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.request-grid > div {
+    padding: 0.85rem;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.45);
+}
+
+.user-actions {
+    display: flex;
+    gap: 0.7rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: end;
+}
+
+.role-pill {
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.86rem;
+    border: 1px solid var(--line);
+}
+
+.role-pill.admin {
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+}
+
+.role-pill.user {
+    background: rgba(255, 255, 255, 0.82);
+}
+
+@media (max-width: 780px) {
+    .admin-hero,
+    .user-card,
+    .request-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .request-grid {
+        grid-template-columns: 1fr;
+    }
+}
