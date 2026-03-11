@@ -173,7 +173,7 @@ Depois, abra `http://localhost:5000/login.html` ou a porta mostrada no terminal.
 
 ## Link publicado
 
-- Railway (producao): `COLE_AQUI_O_LINK_PUBLICO_DO_RAILWAY`
+- Railway (producao): `https://dzdex.up.railway.app/login.html`
 
 ## Aviso importante
 
