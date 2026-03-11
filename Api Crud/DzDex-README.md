@@ -139,41 +139,46 @@ Para testar endpoints protegidos:
 3. clique em `Authorize` no Swagger;
 4. informe `Bearer SEU_TOKEN`.
 
-## Deploy
+## Funcoes novas (resumo)
 
-O projeto .NET fica dentro de `Api Crud/`, entao o caminho mais confiavel para deploy e o `Dockerfile` na raiz do repositorio.
+- Autenticacao JWT com login e cadastro.
+- Controle de permissao por papel (`Admin` e `User`).
+- Painel admin com:
+  - gerenciamento de usuarios;
+  - aprovacao/recusa de solicitacoes de edicao.
+- Registros com autoria (`CriadoPor`).
+- Fluxo de solicitacao de edicao para usuario comum.
+- Categorias dinamicas com criacao, edicao e exclusao (com regras de seguranca).
+- Frontend separado por paginas e CSS dedicado (`login`, `index`, `admin`).
 
-Ele:
+## Login e usuarios
 
-- faz restore/publicacao do projeto dentro de `Api Crud`;
-- sobe a aplicacao ASP.NET na porta definida por `PORT`.
+- O login valida email/senha com hash BCrypt.
+- Usuarios ja criados continuam funcionando no mesmo banco.
+- Admins padrao garantidos na inicializacao:
+  - `adm@adm.com` / `adm10`
+  - `dezin@dezin.com` / `dezin10`
 
-### Variaveis de ambiente no Railway
+## Como rodar local
 
-Para subir em producao sem depender da configuracao local, defina estas variaveis no Railway:
+Na pasta `Api Crud`:
 
-- `Jwt__Key`
-  - chave JWT forte usada para assinar os tokens.
-- `Jwt__Issuer`
-  - exemplo: `DzDexAPI`.
-- `Jwt__Audience`
-  - exemplo: `DzDexClient`.
-- `ConnectionStrings__DefaultConnection`
-  - se usar SQLite com volume, exemplo: `Data Source=/data/dzdex.db`.
-
-Sem `Jwt__Key` em producao a aplicacao nao inicializa.
-
-### Persistencia de banco
-
-O arquivo `dzdex.db` local agora fica fora do commit e fora do build Docker.
-
-Se for usar Railway com SQLite, anexe um volume e aponte `ConnectionStrings__DefaultConnection` para esse caminho persistente. Exemplo:
-
-```text
-Data Source=/data/dzdex.db
+```bash
+dotnet restore
+dotnet build
+dotnet run
 ```
 
-Se nao configurar volume, o banco do container pode ser perdido a cada novo deploy.
+Depois, abra `http://localhost:5000/login.html` ou a porta mostrada no terminal.
+
+## Link publicado
+
+- Railway (producao): `COLE_AQUI_O_LINK_PUBLICO_DO_RAILWAY`
+
+## Aviso importante
+
+- O ambiente gratuito pode hibernar ou expirar.
+- Depois de 30 dias+, o link pode parar de responder se o plano/instancia for encerrado.
 
 ## Observacoes
 
